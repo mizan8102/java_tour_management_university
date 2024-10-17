@@ -2,6 +2,7 @@ package services.payments;
 
 import entities.Booking;
 import entities.Payment;
+import exceptions.PaymentException;
 
 public class BkashPayment extends Payment {
     private String bkashNumber;
@@ -12,16 +13,30 @@ public class BkashPayment extends Payment {
     }
 
     @Override
-    public boolean processPayment() {
-        System.out.println("Processing Bkash payment of " + getAmount() + " for " + bkashNumber);
-        setSuccessful(true);
-        return true;
+    public boolean processPayment() throws PaymentException {
+        try {
+            if (bkashNumber.isEmpty()) {
+                throw new PaymentException("Bkash number is invalid.");
+            }
+
+            System.out.println("Processing Bkash payment...");
+            setSuccessful(true);
+            return isSuccessful();
+        } catch (PaymentException e) {
+            System.err.println(e.getMessage());
+            return false;
+        } catch (Exception e) {
+            System.err.println("An error occurred while processing the Bkash payment: " + e.getMessage());
+            return false;
+        }
     }
 
     @Override
     public boolean refundPayment() {
-        System.out.println("Refunding Bkash payment of " + getAmount() + " for " + bkashNumber);
-        setSuccessful(false);
-        return true;
+        if (isSuccessful()) {
+            setSuccessful(false);
+            return true;
+        }
+        return false;
     }
 }

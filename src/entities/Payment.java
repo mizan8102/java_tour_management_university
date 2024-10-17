@@ -1,5 +1,7 @@
 package entities;
 
+import exceptions.PaymentException;
+
 public abstract class Payment {
     private long id;
     private Booking booking;
@@ -16,7 +18,8 @@ public abstract class Payment {
     }
 
 
-    public abstract boolean processPayment();
+    public abstract boolean processPayment() throws PaymentException;
+
 
     public abstract boolean refundPayment();
 
@@ -46,6 +49,6 @@ public abstract class Payment {
 
     @Override
     public String toString() {
-        return "Payment of $" + amount + " for " + booking.toString() + " via " + paymentMethod + (isSuccessful ? " (Successful)" : " (Failed)");
+        return "Payment of " + amount + " for " + booking.toString() + " via " + paymentMethod + (isSuccessful ? " (Successful)" : " (Failed)");
     }
 }

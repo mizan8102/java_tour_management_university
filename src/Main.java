@@ -10,22 +10,22 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
-    private static final UserInterface userInterface = new UserService();
-    private static final ArrayList<Tour> tours = new ArrayList<>();
-    private static final ArrayList<Booking> bookings = new ArrayList<>();
-    private static final ArrayList<Payment> payments = new ArrayList<>();
-    private static final ArrayList<Member> members = new ArrayList<>();
-    private static User loggedInUser;
+    private UserInterface userInterface = new UserService();
+    private ArrayList<Tour> tours = new ArrayList<>();
+    private ArrayList<Booking> bookings = new ArrayList<>();
+    private ArrayList<Payment> payments = new ArrayList<>();
+    private ArrayList<Member> members = new ArrayList<>();
+    private User loggedInUser;
 
     public static void main(String[] args) {
-        initializeData();
         Scanner scanner = new Scanner(System.in);
         Main main = new Main();
+        main.initializeData();
         main.mainOptions(scanner);
         scanner.close();
     }
 
-    private static void bookTour(Scanner scanner) {
+    private void bookTour(Scanner scanner) {
         if (tours.isEmpty()) {
             System.out.println("No tours available to book.");
             return;
@@ -76,17 +76,17 @@ public class Main {
 
         Booking newBooking = new Booking(bookings.size() + 1, member, selectedTour);
         bookings.add(newBooking);
+        makePayment(scanner, newBooking);
         System.out.println("Tour booked successfully: " + selectedTour.getTitle());
         bookTour(scanner);
     }
 
-    private static void showPreviousBookings(Scanner scanner) {
+    private void showPreviousBookings(Scanner scanner) {
         if (bookings.isEmpty()) {
             System.out.println("No bookings available.");
             return;
         }
 
-        // Display available tours
         System.out.println("Available Tours:");
         System.out.println("---------------------------------------------------------");
         for (Tour tour : tours) {
@@ -98,7 +98,6 @@ public class Main {
         long selectedTourId = scanner.nextLong();
         scanner.nextLine(); // Consume newline
 
-        // Check if selected tour exists
         Tour selectedTour = null;
         for (Tour tour : tours) {
             if (tour.getId() == selectedTourId) {
@@ -109,10 +108,9 @@ public class Main {
 
         if (selectedTour == null) {
             System.out.println("Tour with ID " + selectedTourId + " not found.");
-            return; // Exit if the tour is not found
+            return;
         }
 
-        // Show bookings for the selected tour
         System.out.println("Previous Bookings for Tour: " + selectedTour.getTitle());
         System.out.println("---------------------------------------------------------");
         boolean hasBookings = false;
@@ -132,7 +130,7 @@ public class Main {
     }
 
 
-    private static void viewBookings() {
+    private void viewBookings() {
         if (bookings.isEmpty()) {
             System.out.println("No bookings found.");
             return;
@@ -140,11 +138,11 @@ public class Main {
 
         System.out.println("\nYour Bookings:");
         for (Booking booking : bookings) {
-            System.out.println(booking); // Assume Booking has a proper toString() method
+            System.out.println(booking);
         }
     }
 
-    private static void login(Scanner scanner) {
+    private void login(Scanner scanner) {
         System.out.print("Enter Email: ");
         String email = scanner.next();
         System.out.print("Enter Password: ");
@@ -158,7 +156,7 @@ public class Main {
         }
     }
 
-    private static void listTours() {
+    private void listTours() {
         if (loggedInUser == null) {
             System.out.println("Please log in to view tours.");
             return;
@@ -170,7 +168,7 @@ public class Main {
         }
     }
 
-    private static void makePayment(Scanner scanner) {
+    private void makePayment(Scanner scanner, Booking selectedBooking) {
         if (loggedInUser == null) {
             System.out.println("Please log in to make a payment.");
             return;
@@ -186,22 +184,13 @@ public class Main {
 
         System.out.print("Enter payment amount: ");
         double amount = scanner.nextDouble();
-        scanner.nextLine();  // Consume newline
+        scanner.nextLine();
 
-        // Prompt the user to select an existing booking
-        System.out.print("Enter Booking ID for payment: ");
-        long bookingId = scanner.nextLong();
-        Booking selectedBooking = null;
-        for (Booking booking : bookings) {
-            if (booking.getId() == bookingId) {
-                selectedBooking = booking;
-                break;
-            }
-        }
+
 
         if (selectedBooking == null) {
-            System.out.println("Booking with ID " + bookingId + " not found.");
-            return; // Exit if the booking is not found
+            System.out.println("Booking with ID not found.");
+            return;
         }
 
         Payment payment = null;
@@ -233,14 +222,14 @@ public class Main {
                 break;
             default:
                 System.out.println("Invalid payment option. Payment failed.");
-                return; // Exit if the payment option is invalid
+                return;
         }
 
         payments.add(payment);
         System.out.println("Payment of " + amount + " was successful using " + paymentOption);
     }
 
-    private static void initializeData() {
+    private void initializeData() {
 
         tours.add(new Tour(1, "Bandharban", "Explore the mountain.", "Bangladesh", 10000.00, new String[]{"Spot 1", "Spot 2", "Spot 3"}));
         tours.add(new Tour(2, "Cumilla", "Beautiful city.", "Bangladesh", 500.00, new String[]{"Spot A", "Spot B", "Spot C"}));
@@ -248,19 +237,16 @@ public class Main {
 
     private void mainOptions(Scanner scanner) {
         int option = 0;
-        while (option != 7) {
+        while (option != 4) {
             if (loggedInUser != null) {
                 System.out.println("\n\nWelcome to the Tour Management System!");
                 System.out.println("1. List Tours");
                 System.out.println("2. Booking");
-                System.out.println("3. View Bookings");
-                System.out.println("4. Add a Guide (Feature Not Implemented)");
-                System.out.println("5. View Guide List (Feature Not Implemented)");
-                System.out.println("6. Make a Payment");
-                System.out.println("7. Exit");
+                System.out.println("3. Payment List");
+                System.out.println("4. Exit");
                 System.out.print("Choose an option: ");
                 option = scanner.nextInt();
-                scanner.nextLine();  // Consume newline
+                scanner.nextLine();
 
                 switch (option) {
                     case 1:
@@ -270,16 +256,9 @@ public class Main {
                         bookTour(scanner);
                         break;
                     case 3:
-                        viewBookings();
-                        break;
-                    case 6:
-                        makePayment(scanner);
+
                         break;
                     case 4:
-                    case 5:
-                        System.out.println("This feature is not yet implemented.");
-                        break;
-                    case 7:
                         System.out.println("Exiting... Thank you for using the Tour Management System!");
                         break;
                     default:

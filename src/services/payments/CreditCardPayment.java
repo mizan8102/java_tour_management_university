@@ -1,33 +1,46 @@
 package services.payments;
 
 import entities.Booking;
+
 import entities.Payment;
+import exceptions.PaymentException;
 
 public class CreditCardPayment extends Payment {
     private String cardNumber;
     private String cardHolderName;
-    private String expirationDate;
+    private String expiryDate;
 
-    public CreditCardPayment(long id, Booking booking, double amount, String cardNumber, String cardHolderName, String expirationDate) {
+    public CreditCardPayment(long id, Booking booking, double amount, String cardNumber, String cardHolderName, String expiryDate) {
         super(id, booking, amount, "Credit Card");
         this.cardNumber = cardNumber;
         this.cardHolderName = cardHolderName;
-        this.expirationDate = expirationDate;
+        this.expiryDate = expiryDate;
     }
 
     @Override
-    public boolean processPayment() {
-        System.out.println("Processing Credit Card payment of " + getAmount() + " for " + cardHolderName);
+    public boolean processPayment() throws PaymentException {
+
+        if (cardNumber == null || cardHolderName == null || expiryDate == null ||
+                cardNumber.isEmpty() || cardHolderName.isEmpty() || expiryDate.isEmpty()) {
+            throw new PaymentException("Credit card information is incomplete.");
+        }
+
+        boolean paymentSuccess = true;
+
+        if (!paymentSuccess) {
+            throw new PaymentException("Credit card payment failed.");
+        }
 
         setSuccessful(true);
-        return true; // Indicate success
+        return isSuccessful();
     }
 
     @Override
     public boolean refundPayment() {
-
-        System.out.println("Refunding Credit Card payment of $" + getAmount() + " for " + cardHolderName);
-        setSuccessful(false);
-        return true;
+        if (isSuccessful()) {
+            setSuccessful(false);
+            return true;
+        }
+        return false;
     }
 }

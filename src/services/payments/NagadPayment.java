@@ -2,6 +2,7 @@ package services.payments;
 
 import entities.Booking;
 import entities.Payment;
+import exceptions.PaymentException;
 
 public class NagadPayment extends Payment {
     private String nagadNumber;
@@ -12,16 +13,30 @@ public class NagadPayment extends Payment {
     }
 
     @Override
-    public boolean processPayment() {
-        System.out.println("Processing Nagad payment of " + getAmount() + " for " + nagadNumber);
-        setSuccessful(true);
-        return true;
+    public boolean processPayment()throws PaymentException {
+        try {
+            if (nagadNumber.isEmpty()) {
+                throw new PaymentException("Nagad number is invalid.");
+            }
+
+            System.out.println("Processing Nagad payment...");
+            setSuccessful(true);
+            return isSuccessful();
+        } catch (PaymentException e) {
+            System.err.println(e.getMessage());
+            return false;
+        } catch (Exception e) {
+            System.err.println("An error occurred while processing the Nagad payment: " + e.getMessage());
+            return false;
+        }
     }
 
     @Override
     public boolean refundPayment() {
-        System.out.println("Refunding Nagad payment of " + getAmount() + " for " + nagadNumber);
-        setSuccessful(false);
-        return true;
+        if (isSuccessful()) {
+            setSuccessful(false);
+            return true;
+        }
+        return false;
     }
 }
