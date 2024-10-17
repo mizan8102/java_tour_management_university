@@ -1,4 +1,6 @@
 import entities.*;
+import interfaces.UserInterface;
+import services.UserService;
 import services.payments.BkashPayment;
 import services.payments.CreditCardPayment;
 import services.payments.NagadPayment;
@@ -12,6 +14,7 @@ public class Main {
     private static final int MAX_MEMBERS = 100;
     private static final int MAX_PAYMENTS = 100;
 
+    private static final UserInterface userInterface = new UserService();
     private static final Tour[] tours = new Tour[MAX_TOURS];
     private static final Booking[] bookings = new Booking[MAX_BOOKINGS];
     private static final Member[] members = new Member[MAX_MEMBERS];
@@ -39,14 +42,13 @@ public class Main {
 
     private void mainOptions(Scanner scanner) {
         int option = 0;
-        while (option != 7) {
+        while (option != 4) {
             if (loggedInUser != null) {
                 System.out.println("\n\nWelcome to the Tour Management System!");
                 System.out.println("1. List Tours");
                 System.out.println("2. Booking");
-                System.out.println("3. View Bookings");
-                System.out.println("4. Make a Payment");
-                System.out.println("5. Exit");
+                System.out.println("3. Payment List");
+                System.out.println("4. Exit");
                 System.out.print("Choose an option: ");
                 option = scanner.nextInt();
                 scanner.nextLine();  // Consume newline
@@ -59,12 +61,9 @@ public class Main {
                         bookTour(scanner);
                         break;
                     case 3:
-                        viewBookings();
+                        viewPayments();
                         break;
                     case 4:
-                        makePayment(scanner);
-                        break;
-                    case 5:
                         System.out.println("Exiting... Thank you for using the Tour Management System!");
                         break;
                     default:
@@ -88,7 +87,26 @@ public class Main {
     }
 
     private void bookTour(Scanner scanner) {
+        if (tours.length < 1) {
+            System.out.println("No tours available to book.");
+            return;
+        }
+        System.out.println("\n --------------------------- Booking System ------------------------ \n");
+        System.out.println("1. Show previous booking member list");
+        System.out.println("2. Add a new member");
+        System.out.print("Select an option (1 or 2): ");
+        int choice = scanner.nextInt();
+        scanner.nextLine();
+
         listTours();
+        if (choice == 1) {
+            viewBookings(scanner);
+            return;
+        } else if (choice != 2) {
+            System.out.println("Invalid option. Please try again.");
+            return;
+        }
+
         System.out.print("Enter Tour ID to book: ");
         long tourId = scanner.nextLong();
         scanner.nextLine(); // Consume newline
@@ -113,13 +131,18 @@ public class Main {
         System.out.print("Enter member phone: ");
         String memberPhone = scanner.nextLine();
 
-        Member member = new Member(memberCount + 1, memberName, memberEmail, memberPhone);
+        long memberId = memberCount + 1;
+        Member member = new Member(memberId, memberName, memberEmail, memberPhone);
         members[memberCount++] = member;
 
-        Booking booking = new Booking(bookingCount + 1, member, selectedTour);
+        long bookingId = bookingCount + 1;
+        Booking booking = new Booking(bookingId, member, selectedTour);
         bookings[bookingCount++] = booking;
 
+        makePayment(scanner, bookingId);
+
         System.out.println("Booking successful for: " + selectedTour.getTitle());
+        bookTour(scanner);
     }
 
     private void viewBookings(Scanner scanner) {
@@ -147,15 +170,11 @@ public class Main {
         }
     }
 
-    private void makePayment(Scanner scanner) {
+    private void makePayment(Scanner scanner, long bookingId) {
         if (loggedInUser == null) {
             System.out.println("Please log in to make a payment.");
             return;
         }
-
-        System.out.print("Enter Booking ID to make a payment: ");
-        long bookingId = scanner.nextLong();
-        scanner.nextLine(); // Consume newline
 
         Booking selectedBooking = null;
         for (int i = 0; i < bookingCount; i++) {
@@ -176,11 +195,11 @@ public class Main {
         System.out.println("3. Bkash");
         System.out.println("4. Nagad");
         int paymentOption = scanner.nextInt();
-        scanner.nextLine();  // Consume newline
+        scanner.nextLine();
 
         System.out.print("Enter payment amount: ");
         double amount = scanner.nextDouble();
-        scanner.nextLine();  // Consume newline
+        scanner.nextLine();
 
         Payment payment = null;
         switch (paymentOption) {
@@ -217,7 +236,42 @@ public class Main {
         System.out.println("Payment successful! Payment ID: " + payment.getId());
     }
 
+    private void viewPayments() {
+        if (loggedInUser == null) {
+            System.out.println("Please log in to view payments.");
+            return;
+        }
+
+        if (paymentCount == 0) {
+            System.out.println("No payments found.");
+            return;
+        }
+
+        System.out.println("Payments List:");
+        boolean foundPayments = false;
+
+        for (int i = 0; i < paymentCount; i++) {
+            Payment payment = payments[i];
+            Booking booking = payment.getBooking();
+            Member member = booking.getMember();
+
+            System.out.println("Payment ID: " + payment.getId() +
+                    ", Amount: " + payment.getAmount() +
+                    ", Payment Method: " + payment.getPaymentMethod() +
+                    ", Booking ID: " + booking.getId() +
+                    ", Member: " + member.getName() +
+                    ", Email: " + member.getEmail());
+            foundPayments = true;
+        }
+
+        if (!foundPayments) {
+            System.out.println("No payments found.");
+        }
+    }
+
+
     private void login(Scanner scanner) {
+        System.out.println("\n-------------------------------- Login Portal ------------------------------------------");
         System.out.print("Enter Email: ");
         String email = scanner.nextLine();
         System.out.print("Enter Password: ");
