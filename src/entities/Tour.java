@@ -41,6 +41,7 @@ public class Tour {
         return availableSpots;
     }
 
+
     @Override
     public String toString() {
         return "Tour {" +

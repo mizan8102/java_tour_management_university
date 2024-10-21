@@ -4,12 +4,15 @@ import exceptions.PaymentException;
 
 public abstract class Payment {
     private long id;
-    private Booking booking;
+    private Booking booking;  // Ensure this is properly set in the constructor
     private double amount;
     private String paymentMethod;
     private boolean isSuccessful;
 
     public Payment(long id, Booking booking, double amount, String paymentMethod) {
+        if (booking == null) {
+            throw new IllegalArgumentException("Booking cannot be null"); // Prevent null bookings
+        }
         this.id = id;
         this.booking = booking;
         this.amount = amount;
@@ -17,9 +20,7 @@ public abstract class Payment {
         this.isSuccessful = false;
     }
 
-
     public abstract boolean processPayment() throws PaymentException;
-
 
     public abstract boolean refundPayment();
 
@@ -28,7 +29,7 @@ public abstract class Payment {
     }
 
     public Booking getBooking() {
-        return booking;
+        return booking;  // May need to check this for null
     }
 
     public double getAmount() {

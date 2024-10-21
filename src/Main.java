@@ -6,6 +6,7 @@ import services.payments.CreditCardPayment;
 import services.payments.NagadPayment;
 import services.payments.PayPalPayment;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -16,6 +17,9 @@ public class Main {
     private ArrayList<Payment> payments = new ArrayList<>();
     private ArrayList<Member> members = new ArrayList<>();
     private User loggedInUser;
+    private long lastTourId = 0;
+
+    private final String dbFolder = "database/";
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -23,6 +27,269 @@ public class Main {
         main.initializeData();
         main.mainOptions(scanner);
         scanner.close();
+    }
+
+    private void initializeData() {
+        loadTours();
+        loadMembers();
+        loadBookings();
+        loadPayments();
+    }
+
+
+    private void loadTours() {
+        File file = new File(dbFolder + "tours.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(",");
+                Tour tour = new Tour(
+                        Long.parseLong(data[0]),
+                        data[1],
+                        data[2],
+                        data[3],
+                        Double.parseDouble(data[4]),
+                        data[5].split("\\|")
+                );
+                tours.add(tour);
+
+                if (tour.getId() > lastTourId) {
+                    lastTourId = tour.getId();
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading tours: " + e.getMessage());
+        }
+    }
+
+    // Load members from file
+    private void loadMembers() {
+        File file = new File(dbFolder + "members.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(",");
+                Member member = new Member(
+                        Long.parseLong(data[0]),
+                        data[1],
+                        data[2],
+                        data[3]
+                );
+                members.add(member);
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading members: " + e.getMessage());
+        }
+    }
+
+    // Load bookings from file
+    private void loadBookings() {
+        File file = new File(dbFolder + "bookings.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(",");
+                Member member = findMemberById(Long.parseLong(data[1]));
+                Tour tour = findTourById(Long.parseLong(data[2]));
+                if (member != null && tour != null) {
+                    Booking booking = new Booking(
+                            Long.parseLong(data[0]),
+                            member,
+                            tour
+                    );
+                    bookings.add(booking);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading bookings: " + e.getMessage());
+        }
+    }
+
+
+
+
+    private Member findMemberById(long memberId) {
+        for (Member member : members) {
+            if (member.getId() == memberId) {
+                return member;
+            }
+        }
+        return null;
+    }
+
+    private Tour findTourById(long tourId) {
+        for (Tour tour : tours) {
+            if (tour.getId() == tourId) {
+                return tour;
+            }
+        }
+        return null;
+    }
+
+
+    // Load payments from file
+    private Booking findBookingById(long bookingId) {
+        for (Booking booking : bookings) {
+            if (booking.getId() == bookingId) {
+                return booking;
+            }
+        }
+        return null;
+    }
+
+    private void loadPayments() {
+        File file = new File(dbFolder + "payments.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(",");
+                Booking booking = findBookingById(Long.parseLong(data[1]));
+                double amount = Double.parseDouble(data[2]);
+                String method = data[3];
+
+                if (booking == null) {
+                    System.out.println("Warning: Booking with ID " + data[1] + " not found for payment " + data[0]);
+                    continue;
+                }
+
+                Payment payment = null;
+                switch (method) {
+                    case "CreditCard":
+                        payment = new CreditCardPayment(
+                                Long.parseLong(data[0]),
+                                booking,
+                                amount,
+                                data[4],
+                                data[5],
+                                data[6]
+                        );
+                        break;
+                    case "PayPal":
+                        payment = new PayPalPayment(
+                                Long.parseLong(data[0]),
+                                booking,
+                                amount,
+                                data[4]
+                        );
+                        break;
+                    case "Bkash":
+                        payment = new BkashPayment(
+                                Long.parseLong(data[0]),
+                                booking,
+                                amount,
+                                data[4]
+                        );
+                        break;
+                    case "Nagad":
+                        payment = new NagadPayment(
+                                Long.parseLong(data[0]),
+                                booking,
+                                amount,
+                                data[4]
+                        );
+                        break;
+                    default:
+                        System.out.println("Invalid payment method for payment ID: " + data[0]);
+                        continue;
+                }
+
+                payments.add(payment);
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading payments: " + e.getMessage());
+        }
+    }
+
+
+    public void addTour(Scanner scanner) {
+        try {
+            long id = ++lastTourId;
+            System.out.println("Tour ID will be automatically assigned: " + id);
+
+
+            System.out.print("Enter tour title: ");
+            String title = scanner.nextLine();
+
+            System.out.print("Enter tour description: ");
+            String description = scanner.nextLine();
+
+            System.out.print("Enter tour location: ");
+            String location = scanner.nextLine();
+
+            System.out.print("Enter tour price: ");
+            double price = scanner.nextDouble();
+            scanner.nextLine();
+
+            System.out.print("Enter available spots (separated by commas): ");
+            String spotsInput = scanner.nextLine();
+            String[] availableSpots = spotsInput.split(",");
+
+
+            Tour newTour = new Tour(id, title, description, location, price, availableSpots);
+
+
+            tours.add(newTour);
+            saveTours();
+
+            System.out.println("Tour added successfully: " + newTour);
+
+        } catch (Exception e) {
+            System.out.println("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+
+    private void saveTours() {
+        try (FileWriter writer = new FileWriter(dbFolder + "tours.txt", true)) { // Append mode
+            for (Tour tour : tours) {
+                writer.write(tour.getId() + "," + tour.getTitle() + "," + tour.getDescription() + ","
+                        + tour.getLocation() + "," + tour.getPrice() + "," + String.join("|", tour.getAvailableSpots()) + "\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving tours: " + e.getMessage());
+        }
+    }
+
+    // Save members to file
+    private void saveMembers() {
+        try (FileWriter writer = new FileWriter(dbFolder + "members.txt")) {
+            for (Member member : members) {
+                writer.write(member.getId() + "," + member.getName() + "," + member.getEmail() + "," + member.getPhone() + "\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving members: " + e.getMessage());
+        }
+    }
+
+    // Save bookings to file
+    private void saveBookings() {
+        try (FileWriter writer = new FileWriter(dbFolder + "bookings.txt")) {
+            for (Booking booking : bookings) {
+                writer.write(booking.getId() + "," + booking.getMember().getId() + "," + booking.getTour().getId() + "\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving bookings: " + e.getMessage());
+        }
+    }
+
+    // Save payments to file
+    private void savePayments() {
+        try (FileWriter writer = new FileWriter(dbFolder + "payments.txt")) {
+            for (Payment payment : payments) {
+                writer.write(payment.getId() + "," + payment.getBooking().getId() + "," + payment.getAmount() + ","
+                        + payment.getPaymentMethod() + "\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving payments: " + e.getMessage());
+        }
     }
 
     private void bookTour(Scanner scanner) {
@@ -78,6 +345,8 @@ public class Main {
             bookings.add(newBooking);
             makePayment(scanner, newBooking);
             System.out.println("Tour booked successfully: " + selectedTour.getTitle());
+            saveBookings();
+            saveMembers();
             bookTour(scanner);
         } catch (Exception e) {
             System.out.println("An error occurred while booking the tour: " + e.getMessage());
@@ -189,7 +458,7 @@ public class Main {
             System.out.println("3. Bkash");
             System.out.println("4. Nagad");
             int paymentOption = scanner.nextInt();
-            scanner.nextLine();  // Consume newline
+            scanner.nextLine();
 
             System.out.print("Enter payment amount: ");
             double amount = scanner.nextDouble();
@@ -232,21 +501,13 @@ public class Main {
             }
 
             payments.add(payment);
+            savePayments();
             System.out.println("Payment of " + amount + " was successful using method " + paymentOption);
         } catch (Exception e) {
             System.out.println("An error occurred during payment: " + e.getMessage());
         }
     }
 
-
-    private void initializeData() {
-        try {
-            tours.add(new Tour(1, "Bandharban", "Explore the mountain.", "Bangladesh", 10000.00, new String[]{"Spot 1", "Spot 2", "Spot 3"}));
-            tours.add(new Tour(2, "Cumilla", "Beautiful city.", "Bangladesh", 500.00, new String[]{"Spot A", "Spot B", "Spot C"}));
-        } catch (Exception e) {
-            System.out.println("Error initializing data: " + e.getMessage());
-        }
-    }
 
 
     private void mainOptions(Scanner scanner) {
@@ -255,9 +516,10 @@ public class Main {
             if (loggedInUser != null) {
                 System.out.println("\n\nWelcome to the Tour Management System!");
                 System.out.println("1. List Tours");
-                System.out.println("2. Booking");
-                System.out.println("3. Payment List");
-                System.out.println("4. Exit");
+                System.out.println("2. Add New Tour");
+                System.out.println("3. Booking");
+                System.out.println("4. Payment List");
+                System.out.println("5. Exit");
                 System.out.print("Choose an option: ");
                 option = scanner.nextInt();
                 scanner.nextLine();
@@ -267,12 +529,15 @@ public class Main {
                         listTours();
                         break;
                     case 2:
-                        bookTour(scanner);
+                        addTour(scanner);
                         break;
                     case 3:
-                        viewPayments();
+                        bookTour(scanner);
                         break;
                     case 4:
+                        viewPayments();
+                        break;
+                    case 5:
                         System.out.println("Exiting... Thank you for using the Tour Management System!");
                         break;
                     default:
